@@ -1,0 +1,10 @@
+### Gradle ###
+/.gradle/
+/build/
+
+### NPM ###
+/node_modules/
+
+### Intellij ###
+/.idea/
+*.iml

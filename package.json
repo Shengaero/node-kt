@@ -1,0 +1,65 @@
+{
+  "name": "node-kt",
+  "description": "Kotlin2Js bindings for the node.js standard library.",
+  "main": "node-kt.js",
+  "author": "Kaidan Gustave",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shengaero/node-kt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Shengaero/node-kt/issues"
+  },
+  "keywords": [
+    "kotlin",
+    "kotlin2js"
+  ],
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "roots": [
+      "<rootDir>/build/classes/kotlin/test/"
+    ],
+    "testMatch": [
+      "**/node-kt_test.js"
+    ],
+    "modulePaths": [
+      "/build/node_modules/"
+    ],
+    "reporters": [
+      "default",
+      [
+        "./node_modules/jest-html-reporter",
+        {
+          "pageTitle": "Tests for node-kt",
+          "outputPath": "./build/reports/jest/index.html",
+          "theme": "darkTheme",
+          "includeConsoleLog": true
+        }
+      ]
+    ],
+    "testURL": "http://localhost/",
+    "browser": true,
+    "verbose": true,
+    "testEnvironment": "jsdom"
+  },
+  "files": [
+    "**/**/*.kjsm",
+    "*.js",
+    "*.js.map",
+    "*.meta.js",
+    "LICENSE",
+    "package.json",
+    "README.md"
+  ],
+  "devDependencies": {
+    "jest": "^23.5.0",
+    "jest-html-reporter": "^2.4.2",
+    "kotlin": "^1.2.60"
+  },
+  "peerDependencies": {
+    "kotlin": "^1.2.60"
+  }
+}

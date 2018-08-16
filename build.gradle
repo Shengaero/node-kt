@@ -1,0 +1,185 @@
+buildscript {
+    ext {
+        kotlin_version = '1.2.60'
+        kotlin_wrappers_version = '16.4.1-pre.34-kotlin-1.2.51'
+        node_plugin_version = '1.2.0'
+        shadow_version = '2.0.1'
+        versions_version = '0.17.0'
+        bintray_version = '1.7.3'
+    }
+
+    repositories {
+        jcenter()
+        maven { url = "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "com.github.jengelman.gradle.plugins:shadow:$shadow_version"
+        classpath "com.moowork.gradle:gradle-node-plugin:$node_plugin_version"
+        classpath "com.github.ben-manes:gradle-versions-plugin:$versions_version"
+        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:$bintray_version"
+    }
+}
+
+group = 'me.kgustave'
+version = '1.0.0'
+
+apply plugin: 'idea'
+apply plugin: 'kotlin2js'
+apply plugin: 'maven-publish'
+apply plugin: 'com.moowork.node'
+apply plugin: 'com.jfrog.bintray'
+
+def module = 'node-kt'
+def npmBuildDir = 'build/npm'
+
+project.ext.install = { String dependency, boolean dev = false ->
+    def formattedTaskName = dependency.split('-').collect { it.capitalize() }.join('')
+    npmInstall.dependsOn tasks.create("npmInstall$formattedTaskName", NpmTask) {
+        group = 'npm'
+        description = "Installs $dependency"
+        args = ['install', dev? '--save-dev' : '--save', dependency]
+    }
+}
+
+sourceSets {
+    main {
+        kotlin.srcDir 'src'
+        resources.srcDir 'resources'
+    }
+
+    test {
+        kotlin.srcDir 'test'
+        resources.srcDir 'test-resources'
+    }
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
+    testCompile "org.jetbrains.kotlin:kotlin-test-js:$kotlin_version"
+}
+
+// kotlin build
+
+[compileKotlin2Js, compileTestKotlin2Js].each {
+    it.kotlinOptions {
+        moduleKind = 'commonjs'
+        main = 'noCall'
+        noStdlib = true
+        metaInfo = true
+        typedArrays = true
+        sourceMap = true
+        sourceMapEmbedSources = 'always'
+        target = 'v5'
+    }
+}
+
+compileKotlin2Js {
+    kotlinOptions {
+        outputFile = "build/classes/kotlin/main/${module}.js"
+    }
+}
+
+compileTestKotlin2Js {
+    kotlinOptions {
+        outputFile = "build/classes/kotlin/test/${module}_test.js"
+    }
+}
+
+jar {
+    baseName = module
+    version = "$project.version"
+    classifier = ''
+}
+
+task sourcesJar(type: Jar) {
+    group = 'build'
+    description = 'Generates a sources jar'
+
+    baseName = module
+    version = "$project.version"
+    classifier = 'sources'
+    from { sourceSets.main.allSource }
+}
+
+// npm build
+
+node {
+    download = false
+    def npm = file("${project.buildDir}/npm")
+    if(!npm.exists()) npm.mkdirs()
+    npmWorkDir = npm
+}
+
+install('kotlin', true)
+install('jest', true)
+install('jest-html-reporter', true)
+
+task npmBuild(type: Copy, dependsOn: compileKotlin2Js) {
+    group = 'npm'
+    from 'build/classes/kotlin/main'
+    into npmBuildDir
+}
+
+project.ext.copyNpmFile = { String file, String name = file.toLowerCase().capitalize() ->
+    npmBuild.dependsOn tasks.create("copy$name", Copy) {
+        group = 'npm'
+
+        into npmBuildDir
+        from '.'
+        include file
+    }
+}
+
+copyNpmFile('LICENSE')
+copyNpmFile('package.json', 'PackageJson')
+copyNpmFile('README.md', 'Readme')
+copyNpmFile('CHANGELOG.md', 'Changelog')
+
+// test organization
+
+task populateTestModules(type: Copy, dependsOn: [compileTestKotlin2Js, processTestResources]) {
+    includeEmptyDirs = false
+
+    //noinspection GroovyAssignabilityCheck
+    from compileKotlin2Js.destinationDir
+    from processTestResources.destinationDir
+
+    (configurations.testCompile + configurations.compileOnly).each {
+        from zipTree(it.absolutePath).matching { include '*.js' }
+    }
+
+    exclude '*.js.map'
+    exclude '*.meta.js'
+    exclude '**/*.kjsm'
+
+    into "${project.buildDir}/node_modules"
+}
+
+task runJest(type: NodeTask, dependsOn: [compileTestKotlin2Js, populateTestModules]) {
+    script = file('node_modules/jest/bin/jest')
+    args = [projectDir.toURI().relativize(compileTestKotlin2Js.outputFile.toURI())]
+}
+
+//test {
+//    ignoreFailures = true
+//    maxHeapSize = "2g"
+//
+//    dependsOn runJest
+//}
+
+build {
+    dependsOn clean
+    dependsOn npmBuild
+    dependsOn jar
+    dependsOn sourcesJar
+
+    npmBuild.mustRunAfter clean
+    jar.mustRunAfter npmBuild
+    sourcesJar.mustRunAfter jar
+}
