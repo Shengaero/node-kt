@@ -23,7 +23,7 @@ buildscript {
 }
 
 group = 'me.kgustave'
-version = '1.0.0'
+version = '0.1.0'
 
 apply plugin: 'idea'
 apply plugin: 'kotlin2js'
@@ -182,4 +182,73 @@ build {
     npmBuild.mustRunAfter clean
     jar.mustRunAfter npmBuild
     sourcesJar.mustRunAfter jar
+}
+
+// publishing
+
+task buildForRelease(dependsOn: [build, runJest]) {
+    group = 'publishing'
+    description = 'Builds the project for release'
+
+    runJest.mustRunAfter build
+}
+
+bintray {
+    def keysFile = rootProject.file("keys/keys.properties")
+    if(keysFile.exists()) {
+        def keys = new Properties()
+        keysFile.withReader { keys.load(it) }
+        user = keys['bintray.user.name']
+        key = keys['bintray.api.key']
+    }
+
+    publications = ['BintrayRelease']
+    publish = true
+
+    pkg {
+        repo = 'maven'
+        name = project.name
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/Shengaero/node-kt.git'
+        githubRepo = 'https://github.com/Shengaero/node-kt/'
+        version {
+            name = project.version
+            released = new Date()
+        }
+    }
+}
+
+npm_publish {
+    group = 'publishing'
+
+    args = ['--access', 'public']
+    execOverrides {
+        it.workingDir = npmBuildDir
+    }
+}
+
+publishing {
+    publications {
+        BintrayRelease(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+
+            from project.components.java
+
+            artifact project.tasks.sourcesJar
+        }
+    }
+}
+
+task publishFullRelease {
+    group = 'publishing'
+    description = 'Releases a version'
+
+    dependsOn buildForRelease
+    dependsOn bintrayUpload
+    dependsOn npm_publish
+
+    bintrayUpload.mustRunAfter buildForRelease
+    npm_publish.mustRunAfter buildForRelease
 }

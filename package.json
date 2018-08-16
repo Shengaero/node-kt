@@ -1,5 +1,6 @@
 {
   "name": "node-kt",
+  "version": "0.1.0",
   "description": "Kotlin2Js bindings for the node.js standard library.",
   "main": "node-kt.js",
   "author": "Kaidan Gustave",
@@ -9,6 +10,7 @@
     "url": "git+https://github.com/Shengaero/node-kt.git"
   },
   "bugs": {
+    "email": "kaidangustave@yahoo.com",
     "url": "https://github.com/Shengaero/node-kt/issues"
   },
   "keywords": [

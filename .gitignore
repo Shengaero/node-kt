@@ -8,3 +8,6 @@
 ### Intellij ###
 /.idea/
 *.iml
+
+### Keys ###
+/keys/
