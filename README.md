@@ -43,7 +43,7 @@ dependencies {
 
 ## Currently Supported APIs
 
-          API           |        Status         |       Progress
+API                     |        Status         |       Progress
 ----------------------- | --------------------- | --------------------
 Buffer                  |        Stable         |      Unfinished
 Crypto                  |       On Hold         |      Unfinished
@@ -63,6 +63,7 @@ TTY                     |       Planned         |         None
 V8                      |        Stable         |       Complete
 VM                      |        Stable         |       Complete
 Zlib                    |       Unstable        |      Unfinished
+
 
 > \* This API is unstable due to the nature of the function bindings.<br>
 >    This might result in function names changing in later releases, or
